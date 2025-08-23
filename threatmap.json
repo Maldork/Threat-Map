@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {"id":"ta_bitter","label":"ThreatActor","title":"Bitter"},
+    {"id":"cn_vietnam","label":"Country","title":"Vietnam"},
+    {"id":"mw_bdarkrat","label":"Malware","title":"BDarkRAT"}
+  ],
+  "edges": [
+    {"from":"ta_bitter","to":"cn_vietnam","type":"ACTIVE_IN"},
+    {"from":"ta_bitter","to":"mw_bdarkrat","type":"USES"}
+  ]
+}
