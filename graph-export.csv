@@ -1,58 +1,7 @@
-"~start_node_id","~start_node_labels","~start_node_property_country","~start_node_property_name","~relationship_type","~end_node_id","~end_node_labels","~end_node_property_name","~start_node_property_notes","~start_node_property_motive","~start_node_property_origin","~end_node_property_type","~end_node_property_id","~end_node_property_first_seen","~end_node_property_notes","~end_node_property_kind","~end_node_property_lang","~end_node_property_timeframe","~end_node_property_thematic","~end_node_property_domain","~end_node_property_ip"
-"4:f75dc485-148f-4285-919b-c89869e3b900:11","Actor","Vietnam","APT32","USES","4:f75dc485-148f-4285-919b-c89869e3b900:13","MalwareFamily","PlugX",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:11","Actor","Vietnam","APT32","DEPLOYS","4:f75dc485-148f-4285-919b-c89869e3b900:59","MalwareFamily","Poison Ivy",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:81","Tool","Samurai","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected","backdoor",,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:82","Tool","Ninja","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected","backdoor",,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:83","Technique","Exploit Public-Facing Application","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1190",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:84","Technique","Web Shell","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1505.003",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:85","Technique","Scheduled Task/Job","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1053.005",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:86","Technique","Boot or Logon Autostart Execution","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1547",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:87","Technique","Obfuscated/Compressed Files","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1027",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:88","Technique","Web Protocols","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1071.001",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:89","Technique","Encrypted Channel","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1573",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:90","Technique","OS Credential Dumping","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1003",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","USES","4:f75dc485-148f-4285-919b-c89869e3b900:96","Technique","Server Software Component: Web Shell","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,"T1505.003",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:69","Region","Southeast Asia","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:79","Region","Vietnam","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:80","Region","Taiwan","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:78","Actor",,"ToddyCat","EXPLOITS","4:f75dc485-148f-4285-919b-c89869e3b900:91","Vector","ProxyShell","Exchange exploitation → Samurai (stage1), Ninja (stealth). Gov/telecom focus.","Espionage","APAC-suspected",,,"2021","Unauth RCE via Exchange; often webshell → post-exploitation","Exchange exploit chain",,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:85","Technique","Scheduled Task/Job",,,,,"T1053.005",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:86","Technique","Boot or Logon Autostart Execution",,,,,"T1547",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:87","Technique","Obfuscated/Compressed Files",,,,,"T1027",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:88","Technique","Web Protocols",,,,,"T1071.001",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:89","Technique","Encrypted Channel",,,,,"T1573",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:116","Tool","ArtraDownloader",,,,"downloader",,,"profiles host; fetches next stage",,"C/C++",,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:117","Tool","WSCSPL Backdoor",,,,"backdoor",,,"general C2",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:118","Tool","ZxxZ/MuuyDownloader",,,,"downloader",,,"aka Muuy; stage loader",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:119","Tool","Almond RAT",,,,"RAT",,,"lightweight RAT",,".NET",,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:120","Tool","ORPCBackdoor",,,,"backdoor",,,"RPC-based C2",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:121","Tool","KiwiStealer",,,,"infostealer",,,"file collection & exfil",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:122","Tool","KugelBlitz Loader",,,,"loader",,,"loads Havoc shellcode",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:123","Tool","BDarkRAT",,,,"RAT",,,"custom RAT",,".NET",,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:124","Tool","Havoc C2 Agent",,,,"C2 agent",,,"post-exploitation agent",,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:125","Technique","Spearphishing Attachment",,,,,"T1566.001",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:126","Technique","Exploitation for Client Execution",,,,,"T1203",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:127","Technique","Exploitation for Privilege Escalation",,,,,"T1068",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:128","Technique","Hijack Execution Flow: DLL Side-Loading",,,,,"T1574.002",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:129","Technique","Keylogging",,,,,"T1056.001",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES","4:f75dc485-148f-4285-919b-c89869e3b900:130","Technique","Clipboard Data",,,,,"T1115",,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:69","Region","Southeast Asia",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:79","Region","Vietnam",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:110","Region","South Asia",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:111","Region","Myanmar",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:112","Region","China",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:113","Region","Turkey",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:114","Region","Bangladesh",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","ACTIVE_IN","4:f75dc485-148f-4285-919b-c89869e3b900:115","Region","Pakistan",,,,,,,,,,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","CONDUCTED","4:f75dc485-148f-4285-919b-c89869e3b900:131","Campaign","Bitter Pakistan Ops 2016",,,,,,,,,,"2016","Gov/Defense PK",,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","CONDUCTED","4:f75dc485-148f-4285-919b-c89869e3b900:132","Campaign","Bitter CHM China 2023",,,,,,,,,,"2023","Gov CN spearphish (CHM)",,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","CONDUCTED","4:f75dc485-148f-4285-919b-c89869e3b900:133","Campaign","Bitter China Gov 2024",,,,,,,,,,"Feb 2024","Gov CN spearphish → Havoc",,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","CONDUCTED","4:f75dc485-148f-4285-919b-c89869e3b900:134","Campaign","Bitter Turkey 2024",,,,,,,,,,"Dec 2024","Gov/TR → WmRAT/MiyaRAT",,
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:106","Infrastructure",,,,,,,,,"domain",,,,"northgenstudios.com","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:107","Infrastructure",,,,,,,,,"domain",,,,"dtzappaccount.com","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:108","Infrastructure",,,,,,,,,"domain",,,,"bluelotus.mail-gdrive.com","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:109","Infrastructure",,,,,,,,,"domain",,,,"msdata.ddns.net","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:101","Actor",,"Bitter","EXPLOITS","4:f75dc485-148f-4285-919b-c89869e3b900:91","Vector","ProxyShell",,,,,,"2021","Unauth RCE via Exchange; often webshell → post-exploitation","Exchange exploit chain",,,,,
-"4:f75dc485-148f-4285-919b-c89869e3b900:105","Actor",,"DiceyF","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:102","Infrastructure",,,,,,,,,"domain",,,,"apps.imangolm.com","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:105","Actor",,"DiceyF","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:103","Infrastructure",,,,,,,,,"domain",,,,"quic.flashesplayer.com","unknown"
-"4:f75dc485-148f-4285-919b-c89869e3b900:105","Actor",,"DiceyF","USES_INFRA","4:f75dc485-148f-4285-919b-c89869e3b900:104","Infrastructure",,,,,,,,,"domain",,,,"archivess.imangoim.net","unknown"
+~start_node_property_name,~start_node_labels,~start_node_property_country,~end_node_property_name,~end_node_labels,~relationship_type
+Bitter,Actor,Vietnam,PlugX,Tool,USES
+Bitter,Actor,Vietnam,OceanLotus,ThreatActor,RELATED
+Bitter,Actor,Vietnam,Vietnam,Region,ACTIVE_IN
+APT32,Actor,Vietnam,OceanLotus,ThreatActor,ALIAS_OF
+APT32,Actor,Vietnam,PhantomNet,MalwareFamily,USES
+APT32,Actor,Vietnam,Phishing,Vector,DEPLOYS
