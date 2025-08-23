@@ -4,33 +4,221 @@
   <meta charset="utf-8"/>
   <title>The PhishSauce Threat Graph</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <style>
-    html,body,#graph{height:100%;margin:0;background:#0b0b0c;color:#eaeaea;font-family:Inter,system-ui}
-  </style>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root { --bg:#0b0b0c; --fg:#eaeaea; --panel:#16161a; --muted:#8b8b8b; }
+    html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Segoe UI,Arial }
+    #wrap { display:grid; grid-template-rows:auto 1fr; height:100% }
+    #toolbar {
+      display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+      padding:10px 12px; background:var(--panel); border-bottom:1px solid #222;
+      position:sticky; top:0; z-index:10;
+    }
+    .group { display:flex; align-items:center; gap:6px; background:#1f1f23; padding:6px 8px; border-radius:10px }
+    select, input, button { background:#0f0f12; color:var(--fg); border:1px solid #2a2a2f; border-radius:8px; padding:6px 8px }
+    button { cursor:pointer }
+    label { font-size:12px; color:var(--muted) }
+    #graph { height:100%; }
+  </style>
 </head>
 <body>
-<div id="graph"></div>
+<div id="wrap">
+  <!-- TOOLBAR -->
+  <div id="toolbar">
+    <div class="group">
+      <label>Country</label>
+      <select id="country" multiple size="1" title="Filter by Country node(s)">
+        <!-- populated from data -->
+      </select>
+    </div>
+
+    <div class="group">
+      <label>Node types</label>
+      <span><input type="checkbox" class="nodetype" value="ThreatActor" checked> ThreatActor</span>
+      <span><input type="checkbox" class="nodetype" value="Malware" checked> Malware</span>
+      <span><input type="checkbox" class="nodetype" value="Country" checked> Country</span>
+      <span><input type="checkbox" class="nodetype" value="Tactic" checked> Tactic</span>
+      <span><input type="checkbox" class="nodetype" value="Technique" checked> Technique</span>
+      <span><input type="checkbox" class="nodetype" value="Infra" checked> Infra</span>
+    </div>
+
+    <div class="group">
+      <label>Relationship types</label>
+      <select id="reltype" multiple size="1" title="Filter by relationship types">
+        <!-- populated from data -->
+      </select>
+    </div>
+
+    <div class="group">
+      <input id="search" placeholder="Search title (e.g., Bitter, Vietnam)" />
+      <button id="focusBtn">Focus</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <div class="group">
+      <label><input type="checkbox" id="neighbors" checked> Show neighbors of matches</label>
+    </div>
+  </div>
+
+  <!-- GRAPH -->
+  <div id="graph"></div>
+</div>
+
 <script>
 (async function(){
-  const res = await fetch("./threatmap.json");  // same folder
+  const res = await fetch("./threatmap.json");
   const data = await res.json();
 
-  const colorBy = {ThreatActor:"#ff6b6b",Malware:"#61dafb",Country:"#6ee7b7",
-                   Tactic:"#fbbf24",Technique:"#c084fc",Infra:"#f472b6"};
+  // --- palettes ---
+  const colorBy = {
+    ThreatActor:"#ff6b6b", Malware:"#61dafb", Country:"#6ee7b7",
+    Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6"
+  };
 
-  const nodes = new vis.DataSet(data.nodes.map(n=>({
-    id:n.id,label:n.title,group:n.label,shape:"dot",size:12,
-    color:{background:colorBy[n.label]||"#d1d5db"}
-  })));
-  const edges = new vis.DataSet(data.edges.map(e=>({
-    from:e.from,to:e.to,label:e.type,arrows:"to",font:{align:"top",size:10},smooth:true
-  })));
+  // --- master datasets (never mutated) ---
+  const masterNodes = new Map(data.nodes.map(n => [n.id, n]));
+  const masterEdges = data.edges.slice();
 
-  const network = new vis.Network(document.getElementById("graph"),{nodes,edges},{
-    physics:{solver:"forceAtlas2Based",stabilization:{iterations:200}},
-    interaction:{hover:true,tooltipDelay:120}
+  // build helpers
+  const countries = [...new Set(data.nodes.filter(n=>n.label==="Country").map(n=>n.title))].sort();
+  const relTypes  = [...new Set(masterEdges.map(e=>e.type))].sort();
+
+  // populate filters
+  const countrySel = document.getElementById("country");
+  countries.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = c;
+    countrySel.appendChild(opt);
   });
+  const relSel = document.getElementById("reltype");
+  relTypes.forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = t;
+    relSel.appendChild(opt);
+  });
+
+  // vis-network datasets (these change on filter)
+  const nodesDS = new vis.DataSet([]);
+  const edgesDS = new vis.DataSet([]);
+
+  // network
+  const network = new vis.Network(
+    document.getElementById("graph"),
+    { nodes: nodesDS, edges: edgesDS },
+    {
+      physics:{ solver:"forceAtlas2Based", stabilization:{ iterations:200 } },
+      interaction:{ hover:true, tooltipDelay:120 }
+    }
+  );
+
+  // utility: read multiselect values
+  function multiValues(sel){
+    return Array.from(sel.selectedOptions).map(o=>o.value);
+  }
+
+  // filtering logic
+  function applyFilters({focusTerm=null}={}){
+    // read UI
+    const allowedNodeTypes = new Set(Array.from(document.querySelectorAll(".nodetype:checked")).map(i=>i.value));
+    const selectedCountries = new Set(multiValues(countrySel));
+    const selectedRelTypes  = new Set(multiValues(relSel));
+    const neighbors = document.getElementById("neighbors").checked;
+
+    // base sets
+    let candidateNodeIds = new Set(masterNodes.keys());
+    let candidateEdges   = masterEdges.slice();
+
+    // filter edges by relationship type (if any selected)
+    if (selectedRelTypes.size > 0){
+      candidateEdges = candidateEdges.filter(e => selectedRelTypes.has(e.type));
+    }
+
+    // filter nodes by label types
+    candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
+
+    // filter by country selection
+    if (selectedCountries.size > 0){
+      // keep nodes/edges that are the selected Country nodes or connected to them
+      const countryIds = new Set(
+        data.nodes.filter(n=>n.label==="Country" && selectedCountries.has(n.title)).map(n=>n.id)
+      );
+      const keepEdge = e => countryIds.has(e.from) || countryIds.has(e.to);
+      candidateEdges = candidateEdges.filter(keepEdge);
+
+      // build node id set from remaining edges + explicit countries
+      candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to]).concat([...countryIds])]);
+    }
+
+    // filter by search/focus (title contains term)
+    if (focusTerm && focusTerm.trim().length){
+      const term = focusTerm.toLowerCase();
+      const hits = new Set(
+        [...masterNodes.values()]
+          .filter(n => (candidateNodeIds.has(n.id) && (n.title||"").toLowerCase().includes(term)))
+          .map(n => n.id)
+      );
+
+      if (neighbors){
+        // expand: keep any edge touching a hit, and the adjacent nodes
+        candidateEdges = candidateEdges.filter(e => hits.has(e.from) || hits.has(e.to));
+        candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to])].concat([...hits]));
+      } else {
+        // only keep the hit nodes (and edges between them)
+        candidateNodeIds = hits;
+        candidateEdges = candidateEdges.filter(e => hits.has(e.from) && hits.has(e.to));
+      }
+    }
+
+    // finally enforce node-type filter on node set
+    candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
+
+    // write to vis datasets
+    const visNodes = [...candidateNodeIds].map(id => {
+      const n = masterNodes.get(id);
+      return {
+        id: n.id,
+        label: n.title,
+        group: n.label,
+        shape: "dot",
+        size: 12,
+        color: { background: colorBy[n.label] || "#d1d5db" },
+        title: `<b>${n.title}</b><br/>${n.label}`
+      };
+    });
+    const allowedIds = new Set(visNodes.map(n=>n.id));
+    const visEdges = candidateEdges.filter(e => allowedIds.has(e.from) && allowedIds.has(e.to))
+      .map(e => ({ id:`${e.from}->${e.to}:${e.type}`, from:e.from, to:e.to,
+                   label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true }));
+
+    nodesDS.clear(); edgesDS.clear();
+    nodesDS.add(visNodes); edgesDS.add(visEdges);
+
+    network.fit({ animation:true });
+  }
+
+  // wire UI
+  document.querySelectorAll(".nodetype").forEach(cb => cb.addEventListener("change", () => applyFilters()));
+  countrySel.addEventListener("change", () => applyFilters());
+  relSel.addEventListener("change", () => applyFilters());
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    // clear multiselects & search
+    [...countrySel.options].forEach(o=>o.selected=false);
+    [...relSel.options].forEach(o=>o.selected=false);
+    document.getElementById("search").value = "";
+    document.getElementById("neighbors").checked = true;
+    // re-check all node types
+    document.querySelectorAll(".nodetype").forEach(cb => cb.checked = true);
+    applyFilters();
+  });
+  document.getElementById("focusBtn").addEventListener("click", () => {
+    applyFilters({ focusTerm: document.getElementById("search").value });
+  });
+  document.getElementById("search").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("focusBtn").click();
+  });
+
+  // initial render
+  applyFilters();
 })();
 </script>
 </body>
