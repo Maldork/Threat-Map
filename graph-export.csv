@@ -1,7 +1,73 @@
 ~start_node_property_name,~start_node_labels,~start_node_property_country,~end_node_property_name,~end_node_labels,~relationship_type
+# --- Bitter ------------------------------------------------------------
 Bitter,Actor,Vietnam,PlugX,Tool,USES
-Bitter,Actor,Vietnam,OceanLotus,ThreatActor,RELATED
+Bitter,Actor,Vietnam,QuasarRAT,MalwareFamily,USES
+Bitter,Actor,Vietnam,Spearphishing,Vector,DEPLOYS
+Bitter,Actor,Vietnam,T1566_Phishing,Technique,USES
+Bitter,Actor,Vietnam,T1059_Command_Scripting,Technique,USES
+Bitter,Actor,Vietnam,Discord_CDN,Infra,USES_INFRA
+Bitter,Actor,Vietnam,Google_Drive,Infra,USES_INFRA
 Bitter,Actor,Vietnam,Vietnam,Region,ACTIVE_IN
+Bitter,Actor,Vietnam,Cambodia,Region,ACTIVE_IN
+Bitter,Actor,Vietnam,Laos,Region,ACTIVE_IN
+
+# --- OceanLotus / APT32 -----------------------------------------------
 APT32,Actor,Vietnam,OceanLotus,ThreatActor,ALIAS_OF
 APT32,Actor,Vietnam,PhantomNet,MalwareFamily,USES
-APT32,Actor,Vietnam,Phishing,Vector,DEPLOYS
+APT32,Actor,Vietnam,KerrDown,MalwareFamily,USES
+APT32,Actor,Vietnam,Denis,MalwareFamily,USES
+APT32,Actor,Vietnam,Spearphishing,Vector,DEPLOYS
+APT32,Actor,Vietnam,WateringHole,Vector,DEPLOYS
+APT32,Actor,Vietnam,T1566_Phishing,Technique,USES
+APT32,Actor,Vietnam,T1105_Ingress_Tool_Transfer,Technique,USES
+APT32,Actor,Vietnam,Vietnam,Region,ACTIVE_IN
+APT32,Actor,Vietnam,Philippines,Region,ACTIVE_IN
+APT32,Actor,Vietnam,Malaysia,Region,ACTIVE_IN
+
+# --- MustangPanda ------------------------------------------------------
+MustangPanda,Actor,China,PlugX,Tool,USES
+MustangPanda,Actor,China,Cobalt_Strike,Tool,USES
+MustangPanda,Actor,China,PoisonIvy,MalwareFamily,USES
+MustangPanda,Actor,China,Spearphishing,Vector,DEPLOYS
+MustangPanda,Actor,China,Google_Drive,Infra,USES_INFRA
+MustangPanda,Actor,China,Dropbox,Infra,USES_INFRA
+MustangPanda,Actor,China,China,Region,ACTIVE_IN
+MustangPanda,Actor,China,Myanmar,Region,ACTIVE_IN
+MustangPanda,Actor,China,Thailand,Region,ACTIVE_IN
+
+# --- Naikon ------------------------------------------------------------
+Naikon,Actor,China,PoisonIvy,MalwareFamily,USES
+Naikon,Actor,China,Cobalt_Strike,Tool,USES
+Naikon,Actor,China,Spearphishing,Vector,DEPLOYS
+Naikon,Actor,China,T1059_Command_Scripting,Technique,USES
+Naikon,Actor,China,China,Region,ACTIVE_IN
+Naikon,Actor,China,Laos,Region,ACTIVE_IN
+Naikon,Actor,China,Philippines,Region,ACTIVE_IN
+
+# --- SideWinder (example South Asia) -----------------------------------
+SideWinder,Actor,India,CrimsonRAT,MalwareFamily,USES
+SideWinder,Actor,India,Python_Scripts,Tool,USES
+SideWinder,Actor,India,Spearphishing,Vector,DEPLOYS
+SideWinder,Actor,India,T1055_Process_Injection,Technique,USES
+SideWinder,Actor,India,India,Region,ACTIVE_IN
+SideWinder,Actor,India,Pakistan,Region,ACTIVE_IN
+SideWinder,Actor,India,Bangladesh,Region,ACTIVE_IN
+
+# --- Shared tools/infra linkages (nice graph glue) ---------------------
+OceanLotus,ThreatActor,,Cobalt_Strike,Tool,USES
+OceanLotus,ThreatActor,,Google_Drive,Infra,USES_INFRA
+MustangPanda,Actor,China,ShadowPad,MalwareFamily,USES
+Bitter,Actor,Vietnam,Cobalt_Strike,Tool,USES
+Naikon,Actor,China,ShadowPad,MalwareFamily,USES
+APT32,Actor,Vietnam,Cobalt_Strike,Tool,USES
+
+# --- Techniques (MITRE‑style labels kept simple) -----------------------
+MustangPanda,Actor,China,T1566_Phishing,Technique,USES
+Naikon,Actor,China,T1566_Phishing,Technique,USES
+SideWinder,Actor,India,T1566_Phishing,Technique,USES
+Bitter,Actor,Vietnam,T1105_Ingress_Tool_Transfer,Technique,USES
+
+# --- Extra countries to enrich paths -----------------------------------
+MustangPanda,Actor,China,Vietnam,Region,ACTIVE_IN
+Naikon,Actor,China,Myanmar,Region,ACTIVE_IN
+OceanLotus,ThreatActor,,Cambodia,Region,ACTIVE_IN
