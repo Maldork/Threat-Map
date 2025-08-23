@@ -38,7 +38,6 @@
     </div>
     <div class="group" id="nodeTypesBox">
       <label>Node types</label>
-      <!-- populated dynamically -->
     </div>
     <div class="group">
       <label>Relationship types</label>
@@ -59,7 +58,6 @@
 </div>
 
 <script>
-/* ---------- helpers ---------- */
 const colorBy = {
   ThreatActor:"#ff6b6b", Malware:"#61dafb", Country:"#6ee7b7",
   Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6",
@@ -67,15 +65,9 @@ const colorBy = {
 };
 
 const LABEL_MAP = {
-  "Actor":"ThreatActor",
-  "MalwareFamily":"Malware",
-  "Technique":"Technique",
-  "Tool":"Tool",
-  "Infrastructure":"Infra",
-  "Region":"Country",         // treat Region as Country in UI
-  "Country":"Country",
-  "Vector":"Vector",
-  "Campaign":"Campaign"
+  "Actor":"ThreatActor", "MalwareFamily":"Malware", "Technique":"Technique",
+  "Tool":"Tool", "Infrastructure":"Infra", "Region":"Country",
+  "Country":"Country", "Vector":"Vector", "Campaign":"Campaign"
 };
 
 const S = (id) => document.getElementById(id);
@@ -83,15 +75,14 @@ const setStatus = (t) => S("status").textContent = t;
 const normId = (s) => (s||"").toString().trim().toLowerCase()
   .replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "unknown";
 
-/* ---------- state ---------- */
-let masterNodes = new Map();   // id -> {id,label,title}
-let masterEdges = [];          // {from,to,type}
+let masterNodes = new Map();
+let masterEdges = [];
 let labelSet = new Set();
 
 /* ---------- CSV ---------- */
 async function parseCSV(url){
   const r = await fetch(url, {cache: "no-store"});
-  if(!r.ok) throw new Error(url + " not found");
+  if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
   const text = await r.text();
   return new Promise((resolve, reject) => {
     Papa.parse(text, { header:true, skipEmptyLines:true,
@@ -207,10 +198,8 @@ function applyFilters({focusTerm=null}={}){
     const hits = new Set([...masterNodes.values()]
       .filter(n =>
         nodeIds.has(n.id) &&
-        (
-          (n.title || "").toLowerCase().includes(term) ||
-          (n.id || "").toLowerCase().includes(term)      // <-- also search IDs
-        )
+        ( (n.title||"").toLowerCase().includes(term) ||
+          (n.id||"").toLowerCase().includes(term) )
       ).map(n=>n.id)
     );
     if (neighbors){
@@ -261,7 +250,6 @@ async function loadRepoCSVs(){
   try{
     setStatus("Loading CSVs…");
     const graphRows = await parseCSV("./graph-export.csv");
-    // relationship-export.csv is optional; reserved for future enrichment
     try { await parseCSV("./relationship-export.csv"); } catch {}
     const built = buildFromGraphExport(graphRows);
     masterNodes = built.nodes;
@@ -269,7 +257,8 @@ async function loadRepoCSVs(){
     populateFilters(); wireFilters(); applyFilters();
     setStatus(`Loaded: ${masterNodes.size} nodes, ${masterEdges.length} edges`);
   }catch(e){
-    console.error(e); setStatus("Could not load CSVs. Confirm filenames/paths.");
+    console.error(e);
+    setStatus("Load failed: " + (e.message || e));
   }
 }
 
