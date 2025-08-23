@@ -46,7 +46,7 @@ SideWinder,Actor,India,Bangladesh,Region,ACTIVE_IN
 OceanLotus,ThreatActor,,Cobalt_Strike,Tool,USES
 OceanLotus,ThreatActor,,Google_Drive,Infra,USES_INFRA
 MustangPanda,Actor,China,ShadowPad,MalwareFamily,USES
-Bitter,Actor,Vietnam,Cobalt_Strike,Tool,USES
+Bitter,Actor,Vietnam, Cobalt_Strike,Tool,USES
 Naikon,Actor,China,ShadowPad,MalwareFamily,USES
 APT32,Actor,Vietnam,Cobalt_Strike,Tool,USES
 MustangPanda,Actor,China,T1566_Phishing,Technique,USES
