@@ -2,51 +2,67 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>The PhishSauce Threat Graph</title>
+  <title>The PhishSauce Threat Graph (CSV-powered)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <!-- vis-network for graph -->
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    :root { --bg:#0b0b0c; --fg:#eaeaea; --panel:#16161a; --muted:#8b8b8b; }
+    :root { --bg:#0b0b0c; --fg:#eaeaea; --panel:#16161a; --muted:#9aa0a6; }
     html,body { height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,Segoe UI,Arial }
-    #wrap { display:grid; grid-template-rows:auto 1fr; height:100% }
-    #toolbar {
+    #wrap { display:grid; grid-template-rows:auto auto 1fr; height:100% }
+    #loader,#toolbar {
       display:flex; flex-wrap:wrap; gap:12px; align-items:center;
       padding:10px 12px; background:var(--panel); border-bottom:1px solid #222;
-      position:sticky; top:0; z-index:10;
     }
-    .group { display:flex; align-items:center; gap:6px; background:#1f1f23; padding:6px 8px; border-radius:10px }
+    .group { display:flex; align-items:center; gap:8px; background:#1f1f23; padding:6px 8px; border-radius:10px }
     select, input, button { background:#0f0f12; color:var(--fg); border:1px solid #2a2a2f; border-radius:8px; padding:6px 8px }
     button { cursor:pointer }
     label { font-size:12px; color:var(--muted) }
     #graph { height:100%; }
+    .hint { font-size:12px; color:var(--muted) }
   </style>
 </head>
 <body>
 <div id="wrap">
-  <!-- TOOLBAR -->
+  <!-- Loader / CSV controls -->
+  <div id="loader">
+    <div class="group">
+      <strong>Data:</strong>
+      <button id="loadDefaultBtn">Load repo CSVs</button>
+      <span class="hint">looks for <code>graph-export.csv</code> &amp; <code>relationship-export.csv</code> next to this file</span>
+    </div>
+    <div class="group">
+      <label>Or upload CSVs</label>
+      <input id="graphFile" type="file" accept=".csv">
+      <input id="relsFile" type="file" accept=".csv">
+      <button id="uploadBtn">Build graph</button>
+    </div>
+    <div class="group">
+      <label>Or fetch by URLs</label>
+      <input id="graphUrl" size="30" placeholder="https://.../graph-export.csv">
+      <input id="relsUrl" size="30" placeholder="https://.../relationship-export.csv">
+      <button id="fetchBtn">Fetch</button>
+    </div>
+    <div class="group"><span id="status" class="hint">Idle</span></div>
+  </div>
+
+  <!-- Filters -->
   <div id="toolbar">
     <div class="group">
       <label>Country</label>
-      <select id="country" multiple size="1" title="Filter by Country node(s)">
-        <!-- populated from data -->
-      </select>
+      <select id="country" multiple size="1" title="Filter by Country node(s)"></select>
     </div>
 
-    <div class="group">
+    <div class="group" id="nodeTypesBox">
       <label>Node types</label>
-      <span><input type="checkbox" class="nodetype" value="ThreatActor" checked> ThreatActor</span>
-      <span><input type="checkbox" class="nodetype" value="Malware" checked> Malware</span>
-      <span><input type="checkbox" class="nodetype" value="Country" checked> Country</span>
-      <span><input type="checkbox" class="nodetype" value="Tactic" checked> Tactic</span>
-      <span><input type="checkbox" class="nodetype" value="Technique" checked> Technique</span>
-      <span><input type="checkbox" class="nodetype" value="Infra" checked> Infra</span>
+      <!-- will be populated dynamically from data labels -->
     </div>
 
     <div class="group">
       <label>Relationship types</label>
-      <select id="reltype" multiple size="1" title="Filter by relationship types">
-        <!-- populated from data -->
-      </select>
+      <select id="reltype" multiple size="1" title="Filter by relationship types"></select>
     </div>
 
     <div class="group">
@@ -60,166 +76,323 @@
     </div>
   </div>
 
-  <!-- GRAPH -->
+  <!-- Graph -->
   <div id="graph"></div>
 </div>
 
 <script>
-(async function(){
-  const res = await fetch("./threatmap.json");
-  const data = await res.json();
+/* ----------------------- helpers ----------------------- */
+const colorBy = {
+  ThreatActor:"#ff6b6b", Malware:"#61dafb", Country:"#6ee7b7",
+  Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6",
+  Tool:"#60a5fa", Vector:"#f59e0b", Campaign:"#34d399"
+};
 
-  // --- palettes ---
-  const colorBy = {
-    ThreatActor:"#ff6b6b", Malware:"#61dafb", Country:"#6ee7b7",
-    Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6"
+// Map source labels to UI categories
+const LABEL_MAP = {
+  "Actor":"ThreatActor",
+  "MalwareFamily":"Malware",
+  "Technique":"Technique",
+  "Tool":"Tool",
+  "Infrastructure":"Infra",
+  "Region":"Country",
+  "Country":"Country",
+  "Vector":"Vector",
+  "Campaign":"Campaign"
+};
+
+const S = (id) => document.getElementById(id);
+const setStatus = (t) => S("status").textContent = t;
+const normId = (s) => (s||"").toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "unknown";
+
+/* ----------------------- state ----------------------- */
+let masterNodes = new Map();   // id -> node {id,label,title,...}
+let masterEdges = [];          // {from,to,type}
+let countriesList = [];        // titles
+let relTypeList = [];          // types
+let labelSet = new Set();      // node label categories present
+
+/* ----------------------- CSV parsing ----------------------- */
+async function parseCSVText(text) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (res) => resolve(res.data),
+      error: reject
+    });
+  });
+}
+
+async function fetchText(url){
+  const r = await fetch(url, {cache: "no-store"});
+  if(!r.ok) throw new Error(`Fetch failed ${r.status}`);
+  return await r.text();
+}
+
+/* Expected columns in graph-export.csv:
+   ~start_node_property_name, ~start_node_labels, ~start_node_property_country (optional)
+   ~end_node_property_name,   ~end_node_labels
+   ~relationship_type
+*/
+function buildFromGraphExport(rows){
+  const N = new Map();
+  const E = [];
+
+  const addNode = (id, label, title) => {
+    if (!N.has(id)) N.set(id, { id, label, title: String(title || id) });
   };
+  const addEdge = (a,b,type) => E.push({ from:a, to:b, type: String(type||"RELATED") });
 
-  // --- master datasets (never mutated) ---
-  const masterNodes = new Map(data.nodes.map(n => [n.id, n]));
-  const masterEdges = data.edges.slice();
+  for (const row of rows){
+    const aTitle = row["~start_node_property_name"];
+    const aLabelRaw = row["~start_node_labels"];
+    const bTitle = row["~end_node_property_name"];
+    const bLabelRaw = row["~end_node_labels"];
+    const relType = row["~relationship_type"];
 
-  // build helpers
-  const countries = [...new Set(data.nodes.filter(n=>n.label==="Country").map(n=>n.title))].sort();
-  const relTypes  = [...new Set(masterEdges.map(e=>e.type))].sort();
+    if (!aTitle || !bTitle) continue;
 
-  // populate filters
-  const countrySel = document.getElementById("country");
-  countries.forEach(c => {
+    const aLabel = LABEL_MAP[aLabelRaw] || aLabelRaw || "Node";
+    const bLabel = LABEL_MAP[bLabelRaw] || bLabelRaw || "Node";
+
+    const aId = (aLabel === "ThreatActor")
+      ? `actor_${normId(aTitle)}`
+      : `${normId(aLabel)}_${normId(aTitle)}`;
+
+    const bId = `${normId(bLabel)}_${normId(bTitle)}`;
+
+    addNode(aId, aLabel, aTitle);
+    addNode(bId, bLabel, bTitle);
+    addEdge(aId, bId, relType);
+
+    // collect label set
+    labelSet.add(aLabel); labelSet.add(bLabel);
+  }
+
+  // add ACTIVE_IN edges from country property if present
+  const hasCountry = rows.some(r => r["~start_node_property_country"]);
+  if (hasCountry){
+    const seen = new Set();
+    for (const r of rows){
+      const aTitle = r["~start_node_property_name"];
+      const cTitle = r["~start_node_property_country"];
+      if (!aTitle || !cTitle) continue;
+      const aId = `actor_${normId(aTitle)}`;
+      const cId = `country_${normId(cTitle)}`;
+      addNode(aId, "ThreatActor", aTitle);
+      addNode(cId, "Country", cTitle);
+      const key = `${aId}->${cId}`;
+      if (!seen.has(key)){ E.push({ from:aId, to:cId, type:"ACTIVE_IN" }); seen.add(key); }
+      labelSet.add("ThreatActor"); labelSet.add("Country");
+    }
+  }
+
+  return { nodes:N, edges:E };
+}
+
+/* You can extend this if relationship-export.csv has extra info you need.
+   For now we just keep it available for future use. */
+function maybeUseRelationshipExport(_rows, N, E){
+  // noop; reserved for adding extra edge types if needed.
+  return { nodes: N, edges: E };
+}
+
+/* ----------------------- UI + Graph ----------------------- */
+const nodesDS = new vis.DataSet([]);
+const edgesDS = new vis.DataSet([]);
+const network = new vis.Network(
+  document.getElementById("graph"),
+  { nodes: nodesDS, edges: edgesDS },
+  {
+    physics:{ solver:"forceAtlas2Based", stabilization:{ iterations:200 } },
+    interaction:{ hover:true, tooltipDelay:120 }
+  }
+);
+
+function populateFilters(){
+  // countries
+  const countryTitles = [...new Set([...masterNodes.values()]
+    .filter(n=>n.label==="Country").map(n=>n.title))].sort();
+  countriesList = countryTitles;
+  const cs = S("country"); cs.innerHTML = "";
+  countriesList.forEach(c => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = c;
-    countrySel.appendChild(opt);
+    cs.appendChild(opt);
   });
-  const relSel = document.getElementById("reltype");
-  relTypes.forEach(t => {
+
+  // rel types
+  const rels = [...new Set(masterEdges.map(e=>e.type))].sort();
+  relTypeList = rels;
+  const rs = S("reltype"); rs.innerHTML = "";
+  relTypeList.forEach(t => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = t;
-    relSel.appendChild(opt);
+    rs.appendChild(opt);
   });
 
-  // vis-network datasets (these change on filter)
-  const nodesDS = new vis.DataSet([]);
-  const edgesDS = new vis.DataSet([]);
+  // node types toggles
+  const box = S("nodeTypesBox");
+  box.querySelectorAll("span,input").forEach(el => el.remove());
+  [...labelSet].sort().forEach(L => {
+    const span = document.createElement("span");
+    span.innerHTML = `<input type="checkbox" class="nodetype" value="${L}" checked> ${L}`;
+    box.appendChild(span);
+  });
+}
 
-  // network
-  const network = new vis.Network(
-    document.getElementById("graph"),
-    { nodes: nodesDS, edges: edgesDS },
-    {
-      physics:{ solver:"forceAtlas2Based", stabilization:{ iterations:200 } },
-      interaction:{ hover:true, tooltipDelay:120 }
-    }
-  );
+function applyFilters({focusTerm=null}={}){
+  const allowedNodeTypes = new Set(Array.from(document.querySelectorAll(".nodetype:checked")).map(i=>i.value));
+  const selectedCountries = new Set(Array.from(S("country").selectedOptions).map(o=>o.value));
+  const selectedRelTypes  = new Set(Array.from(S("reltype").selectedOptions).map(o=>o.value));
+  const neighbors = S("neighbors").checked;
 
-  // utility: read multiselect values
-  function multiValues(sel){
-    return Array.from(sel.selectedOptions).map(o=>o.value);
+  let candidateNodeIds = new Set(masterNodes.keys());
+  let candidateEdges = masterEdges.slice();
+
+  // relationship type filter
+  if (selectedRelTypes.size > 0){
+    candidateEdges = candidateEdges.filter(e => selectedRelTypes.has(e.type));
+  }
+  // node type filter (initial pruning)
+  candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
+
+  // country filter
+  if (selectedCountries.size > 0){
+    const countryIds = new Set(
+      [...masterNodes.values()].filter(n=>n.label==="Country" && selectedCountries.has(n.title)).map(n=>n.id)
+    );
+    candidateEdges = candidateEdges.filter(e => countryIds.has(e.from) || countryIds.has(e.to));
+    candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to]), ...countryIds]);
   }
 
-  // filtering logic
-  function applyFilters({focusTerm=null}={}){
-    // read UI
-    const allowedNodeTypes = new Set(Array.from(document.querySelectorAll(".nodetype:checked")).map(i=>i.value));
-    const selectedCountries = new Set(multiValues(countrySel));
-    const selectedRelTypes  = new Set(multiValues(relSel));
-    const neighbors = document.getElementById("neighbors").checked;
-
-    // base sets
-    let candidateNodeIds = new Set(masterNodes.keys());
-    let candidateEdges   = masterEdges.slice();
-
-    // filter edges by relationship type (if any selected)
-    if (selectedRelTypes.size > 0){
-      candidateEdges = candidateEdges.filter(e => selectedRelTypes.has(e.type));
+  // search / focus
+  if (focusTerm && focusTerm.trim().length){
+    const term = focusTerm.toLowerCase();
+    const hits = new Set(
+      [...masterNodes.values()]
+        .filter(n => candidateNodeIds.has(n.id) && (n.title||"").toLowerCase().includes(term))
+        .map(n => n.id)
+    );
+    if (neighbors){
+      candidateEdges = candidateEdges.filter(e => hits.has(e.from) || hits.has(e.to));
+      candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to]), ...hits]);
+    } else {
+      candidateNodeIds = hits;
+      candidateEdges = candidateEdges.filter(e => hits.has(e.from) && hits.has(e.to));
     }
-
-    // filter nodes by label types
-    candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
-
-    // filter by country selection
-    if (selectedCountries.size > 0){
-      // keep nodes/edges that are the selected Country nodes or connected to them
-      const countryIds = new Set(
-        data.nodes.filter(n=>n.label==="Country" && selectedCountries.has(n.title)).map(n=>n.id)
-      );
-      const keepEdge = e => countryIds.has(e.from) || countryIds.has(e.to);
-      candidateEdges = candidateEdges.filter(keepEdge);
-
-      // build node id set from remaining edges + explicit countries
-      candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to]).concat([...countryIds])]);
-    }
-
-    // filter by search/focus (title contains term)
-    if (focusTerm && focusTerm.trim().length){
-      const term = focusTerm.toLowerCase();
-      const hits = new Set(
-        [...masterNodes.values()]
-          .filter(n => (candidateNodeIds.has(n.id) && (n.title||"").toLowerCase().includes(term)))
-          .map(n => n.id)
-      );
-
-      if (neighbors){
-        // expand: keep any edge touching a hit, and the adjacent nodes
-        candidateEdges = candidateEdges.filter(e => hits.has(e.from) || hits.has(e.to));
-        candidateNodeIds = new Set([...candidateEdges.flatMap(e => [e.from, e.to])].concat([...hits]));
-      } else {
-        // only keep the hit nodes (and edges between them)
-        candidateNodeIds = hits;
-        candidateEdges = candidateEdges.filter(e => hits.has(e.from) && hits.has(e.to));
-      }
-    }
-
-    // finally enforce node-type filter on node set
-    candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
-
-    // write to vis datasets
-    const visNodes = [...candidateNodeIds].map(id => {
-      const n = masterNodes.get(id);
-      return {
-        id: n.id,
-        label: n.title,
-        group: n.label,
-        shape: "dot",
-        size: 12,
-        color: { background: colorBy[n.label] || "#d1d5db" },
-        title: `<b>${n.title}</b><br/>${n.label}`
-      };
-    });
-    const allowedIds = new Set(visNodes.map(n=>n.id));
-    const visEdges = candidateEdges.filter(e => allowedIds.has(e.from) && allowedIds.has(e.to))
-      .map(e => ({ id:`${e.from}->${e.to}:${e.type}`, from:e.from, to:e.to,
-                   label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true }));
-
-    nodesDS.clear(); edgesDS.clear();
-    nodesDS.add(visNodes); edgesDS.add(visEdges);
-
-    network.fit({ animation:true });
   }
 
-  // wire UI
-  document.querySelectorAll(".nodetype").forEach(cb => cb.addEventListener("change", () => applyFilters()));
-  countrySel.addEventListener("change", () => applyFilters());
-  relSel.addEventListener("change", () => applyFilters());
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    // clear multiselects & search
-    [...countrySel.options].forEach(o=>o.selected=false);
-    [...relSel.options].forEach(o=>o.selected=false);
-    document.getElementById("search").value = "";
-    document.getElementById("neighbors").checked = true;
+  // enforce allowed node types again (after expansions)
+  candidateNodeIds = new Set([...candidateNodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
+
+  // write to vis datasets
+  const visNodes = [...candidateNodeIds].map(id => {
+    const n = masterNodes.get(id);
+    return {
+      id: n.id,
+      label: n.title,
+      group: n.label,
+      shape: "dot",
+      size: 12,
+      color: { background: colorBy[n.label] || "#d1d5db" },
+      title: `<b>${n.title}</b><br/>${n.label}`
+    };
+  });
+  const allowedIds = new Set(visNodes.map(n=>n.id));
+  const visEdges = candidateEdges.filter(e => allowedIds.has(e.from) && allowedIds.has(e.to))
+    .map(e => ({ id:`${e.from}->${e.to}:${e.type}`, from:e.from, to:e.to,
+                 label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true }));
+
+  nodesDS.clear(); edgesDS.clear();
+  nodesDS.add(visNodes); edgesDS.add(visEdges);
+  network.fit({ animation:true });
+}
+
+function wireFilters(){
+  document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("nodetype") || e.target.id==="country" || e.target.id==="reltype"){
+      applyFilters();
+    }
+  });
+  S("resetBtn").addEventListener("click", () => {
+    [...S("country").options].forEach(o=>o.selected=false);
+    [...S("reltype").options].forEach(o=>o.selected=false);
+    S("search").value = "";
+    S("neighbors").checked = true;
     // re-check all node types
     document.querySelectorAll(".nodetype").forEach(cb => cb.checked = true);
     applyFilters();
   });
-  document.getElementById("focusBtn").addEventListener("click", () => {
-    applyFilters({ focusTerm: document.getElementById("search").value });
-  });
-  document.getElementById("search").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") document.getElementById("focusBtn").click();
-  });
+  S("focusBtn").addEventListener("click", () => applyFilters({ focusTerm: S("search").value }));
+  S("search").addEventListener("keydown", (e) => { if (e.key === "Enter") S("focusBtn").click(); });
+}
 
-  // initial render
+/* ----------------------- load paths ----------------------- */
+async function buildGraphFromCSVs(graphCsvText, relsCsvText){
+  setStatus("Parsing CSV…");
+  const graphRows = await parseCSVText(graphCsvText);
+  const relRows   = relsCsvText ? await parseCSVText(relsCsvText) : [];
+
+  const {nodes, edges} = buildFromGraphExport(graphRows);
+  const res2 = maybeUseRelationshipExport(relRows, nodes, edges);
+
+  // commit to master state
+  masterNodes = res2.nodes;
+  masterEdges = res2.edges;
+
+  // refresh filter lists and render
+  populateFilters();
+  wireFilters();
   applyFilters();
-})();
+  setStatus(`Loaded: ${masterNodes.size} nodes, ${masterEdges.length} edges`);
+}
+
+async function loadDefault(){
+  try{
+    setStatus("Loading repo CSVs…");
+    const [gText, rText] = await Promise.all([
+      fetchText("./graph-export.csv"),
+      fetchText("./relationship-export.csv")
+    ]);
+    await buildGraphFromCSVs(gText, rText);
+  }catch(err){
+    console.error(err);
+    setStatus("Could not load default CSVs (check file names/paths).");
+  }
+}
+
+/* ----------------------- buttons ----------------------- */
+S("loadDefaultBtn").addEventListener("click", loadDefault);
+
+S("uploadBtn").addEventListener("click", async () => {
+  const gf = S("graphFile").files[0];
+  if (!gf){ setStatus("Please choose graph-export.csv"); return; }
+  const rf = S("relsFile").files[0];
+  const gText = await gf.text();
+  const rText = rf ? await rf.text() : "";
+  await buildGraphFromCSVs(gText, rText);
+});
+
+S("fetchBtn").addEventListener("click", async () => {
+  const gUrl = S("graphUrl").value.trim();
+  if (!gUrl){ setStatus("Enter a graph CSV URL"); return; }
+  const rUrl = S("relsUrl").value.trim();
+  try{
+    const gText = await fetchText(gUrl);
+    const rText = rUrl ? await fetchText(rUrl) : "";
+    await buildGraphFromCSVs(gText, rText);
+  }catch(e){
+    console.error(e); setStatus("Fetch failed (CORS / URL error)");
+  }
+});
+
+/* ----------------------- auto-try defaults on load ----------------------- */
+window.addEventListener("load", () => {
+  // Try to auto-load CSVs shipped with the site.
+  loadDefault();
+});
 </script>
 </body>
 </html>
