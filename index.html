@@ -24,9 +24,9 @@
 </head>
 <body>
 <div id="wrap">
-  <!-- Loader (no upload, just status) -->
+  <!-- Loader -->
   <div id="loader">
-    <div class="group"><strong>Data:</strong> <span class="hint">Auto-loads <code>graph-export.csv</code> (+ optional <code>relationship-export.csv</code>) from repo root.</span></div>
+    <div class="group"><strong>Data:</strong> <span class="hint">Auto-loads <code>graph-export.csv</code> (same folder as this file).</span></div>
     <div class="group"><span id="status" class="hint">Loading…</span></div>
   </div>
 
@@ -53,11 +53,11 @@
     </div>
   </div>
 
-  <!-- Graph -->
   <div id="graph"></div>
 </div>
 
 <script>
+/* ---------- helpers ---------- */
 const colorBy = {
   ThreatActor:"#ff6b6b", Malware:"#61dafb", Country:"#6ee7b7",
   Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6",
@@ -65,9 +65,15 @@ const colorBy = {
 };
 
 const LABEL_MAP = {
-  "Actor":"ThreatActor", "MalwareFamily":"Malware", "Technique":"Technique",
-  "Tool":"Tool", "Infrastructure":"Infra", "Region":"Country",
-  "Country":"Country", "Vector":"Vector", "Campaign":"Campaign"
+  "Actor":"ThreatActor",
+  "MalwareFamily":"Malware",
+  "Technique":"Technique",
+  "Tool":"Tool",
+  "Infrastructure":"Infra",
+  "Region":"Country",
+  "Country":"Country",
+  "Vector":"Vector",
+  "Campaign":"Campaign"
 };
 
 const S = (id) => document.getElementById(id);
@@ -75,9 +81,10 @@ const setStatus = (t) => S("status").textContent = t;
 const normId = (s) => (s||"").toString().trim().toLowerCase()
   .replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "unknown";
 
-let masterNodes = new Map();
-let masterEdges = [];
-let labelSet = new Set();
+/* ---------- state ---------- */
+let masterNodes = new Map();   // id -> {id,label,title}
+let masterEdges = [];          // {from,to,type}
+let labelSet    = new Set();
 
 /* ---------- CSV ---------- */
 async function parseCSV(url){
@@ -91,16 +98,19 @@ async function parseCSV(url){
   });
 }
 
-/* Expected columns in graph-export.csv:
-   ~start_node_property_name, ~start_node_labels, ~start_node_property_country (optional)
-   ~end_node_property_name,   ~end_node_labels
-   ~relationship_type
-*/
+/* Build graph ONLY from CSV rows (no auto ACTIVE_IN). Also de-dup edges. */
 function buildFromGraphExport(rows){
   const N = new Map();
   const E = [];
+  const seenEdge = new Set(); // de-dup key: from->to:type
+
   const addNode = (id, label, title) => { if (!N.has(id)) N.set(id, {id, label, title: String(title||id)}); };
-  const addEdge = (a,b,t) => E.push({from:a,to:b,type:String(t||"RELATED")});
+  const addEdge = (a,b,t) => {
+    const key = `${a}->${b}:${t||"RELATED"}`;
+    if (seenEdge.has(key)) return;
+    seenEdge.add(key);
+    E.push({from:a,to:b,type:String(t||"RELATED")});
+  };
 
   for (const row of rows){
     const aTitle = row["~start_node_property_name"];
@@ -124,23 +134,6 @@ function buildFromGraphExport(rows){
     labelSet.add(aLabel); labelSet.add(bLabel);
   }
 
-  // derive ACTIVE_IN from actor country column if present
-  const hasCountry = rows.some(r => r["~start_node_property_country"]);
-  if (hasCountry){
-    const seen = new Set();
-    for (const r of rows){
-      const aTitle = r["~start_node_property_name"];
-      const cTitle = r["~start_node_property_country"];
-      if (!aTitle || !cTitle) continue;
-      const aId = `actor_${normId(aTitle)}`;
-      const cId = `country_${normId(cTitle)}`;
-      addNode(aId, "ThreatActor", aTitle);
-      addNode(cId, "Country", cTitle);
-      const key = `${aId}->${cId}`;
-      if (!seen.has(key)){ E.push({from:aId,to:cId,type:"ACTIVE_IN"}); seen.add(key); }
-      labelSet.add("ThreatActor"); labelSet.add("Country");
-    }
-  }
   return {nodes:N, edges:E};
 }
 
@@ -148,8 +141,10 @@ function buildFromGraphExport(rows){
 const nodesDS = new vis.DataSet([]);
 const edgesDS = new vis.DataSet([]);
 const network = new vis.Network(
-  S("graph"), { nodes:nodesDS, edges:edgesDS },
-  { physics:{solver:"forceAtlas2Based",stabilization:{iterations:200}}, interaction:{hover:true,tooltipDelay:120} }
+  S("graph"),
+  { nodes:nodesDS, edges:edgesDS },
+  { physics:{solver:"forceAtlas2Based", stabilization:{iterations:200}},
+    interaction:{hover:true, tooltipDelay:120} }
 );
 
 function populateFilters(){
@@ -164,7 +159,7 @@ function populateFilters(){
   [...new Set(masterEdges.map(e=>e.type))].sort()
     .forEach(t => { const o=document.createElement("option"); o.value=o.textContent=t; rs.appendChild(o); });
 
-  // Node type toggles
+  // Node types
   const box = S("nodeTypesBox");
   box.querySelectorAll("span,input").forEach(el=>el.remove());
   [...labelSet].sort().forEach(L=>{
@@ -218,10 +213,19 @@ function applyFilters({focusTerm=null}={}){
     return { id:n.id, label:n.title, group:n.label, shape:"dot", size:12,
       color:{background:colorBy[n.label]||"#d1d5db"}, title:`<b>${n.title}</b><br/>${n.label}` };
   });
+
+  // De-dup edges again at render time (safety)
   const allowed = new Set(visNodes.map(n=>n.id));
-  const visEdges = edges.filter(e => allowed.has(e.from)&&allowed.has(e.to))
-    .map(e => ({ id:`${e.from}->${e.to}:${e.type}`, from:e.from, to:e.to,
-                 label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true }));
+  const seen = new Set();
+  const visEdges = [];
+  for (const e of edges){
+    if (!allowed.has(e.from) || !allowed.has(e.to)) continue;
+    const key = `${e.from}->${e.to}:${e.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    visEdges.push({ id:key, from:e.from, to:e.to, label:e.type, arrows:"to",
+                    font:{align:"top", size:10}, smooth:true });
+  }
 
   nodesDS.clear(); edgesDS.clear();
   nodesDS.add(visNodes); edgesDS.add(visEdges);
@@ -248,9 +252,8 @@ function wireFilters(){
 /* ---------- load & build ---------- */
 async function loadRepoCSVs(){
   try{
-    setStatus("Loading CSVs…");
+    setStatus("Loading CSV…");
     const graphRows = await parseCSV("./graph-export.csv");
-    try { await parseCSV("./relationship-export.csv"); } catch {}
     const built = buildFromGraphExport(graphRows);
     masterNodes = built.nodes;
     masterEdges = built.edges;
