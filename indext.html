@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>The PhishSauce Threat Graph</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    html,body,#graph{height:100%;margin:0;background:#0b0b0c;color:#eaeaea;font-family:Inter,system-ui}
+  </style>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+<div id="graph"></div>
+<script>
+(async function(){
+  const res = await fetch("./threatmap.json");  // same folder
+  const data = await res.json();
+
+  const colorBy = {ThreatActor:"#ff6b6b",Malware:"#61dafb",Country:"#6ee7b7",
+                   Tactic:"#fbbf24",Technique:"#c084fc",Infra:"#f472b6"};
+
+  const nodes = new vis.DataSet(data.nodes.map(n=>({
+    id:n.id,label:n.title,group:n.label,shape:"dot",size:12,
+    color:{background:colorBy[n.label]||"#d1d5db"}
+  })));
+  const edges = new vis.DataSet(data.edges.map(e=>({
+    from:e.from,to:e.to,label:e.type,arrows:"to",font:{align:"top",size:10},smooth:true
+  })));
+
+  const network = new vis.Network(document.getElementById("graph"),{nodes,edges},{
+    physics:{solver:"forceAtlas2Based",stabilization:{iterations:200}},
+    interaction:{hover:true,tooltipDelay:120}
+  });
+})();
+</script>
+</body>
+</html>
