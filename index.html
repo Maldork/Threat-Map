@@ -18,7 +18,8 @@
     select, input, button { background:#0f0f12; color:var(--fg); border:1px solid #2a2a2f; border-radius:8px; padding:6px 8px }
     button { cursor:pointer }
     label { font-size:12px; color:var(--muted) }
-    #graph { height:100%; }
+    /* IMPORTANT: ensure the graph always has space */
+    #graph { height:100%; min-height: 72vh; }
     .hint { font-size:12px; color:var(--muted) }
   </style>
 </head>
@@ -47,6 +48,7 @@
       <input id="search" placeholder="Search (e.g., Bitter, Vietnam, PlugX)" />
       <button id="focusBtn">Focus</button>
       <button id="resetBtn">Reset</button>
+      <button id="centerBtn">Center</button>
     </div>
     <div class="group">
       <label><input type="checkbox" id="neighbors" checked> Show neighbors of matches</label>
@@ -63,23 +65,13 @@ const colorBy = {
   Tactic:"#fbbf24", Technique:"#c084fc", Infra:"#f472b6",
   Tool:"#60a5fa", Vector:"#f59e0b", Campaign:"#34d399"
 };
-
 const LABEL_MAP = {
-  "Actor":"ThreatActor",
-  "MalwareFamily":"Malware",
-  "Technique":"Technique",
-  "Tool":"Tool",
-  "Infrastructure":"Infra",
-  "Region":"Country",
-  "Country":"Country",
-  "Vector":"Vector",
-  "Campaign":"Campaign"
+  "Actor":"ThreatActor","MalwareFamily":"Malware","Technique":"Technique","Tool":"Tool",
+  "Infrastructure":"Infra","Region":"Country","Country":"Country","Vector":"Vector","Campaign":"Campaign"
 };
-
 const S = (id) => document.getElementById(id);
 const setStatus = (t) => S("status").textContent = t;
-const normId = (s) => (s||"").toString().trim().toLowerCase()
-  .replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "unknown";
+const normId = (s) => (s||"").toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"") || "unknown";
 
 /* ---------- state ---------- */
 let masterNodes = new Map();   // id -> {id,label,title}
@@ -92,48 +84,30 @@ async function parseCSV(url){
   if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
   const text = await r.text();
   return new Promise((resolve, reject) => {
-    Papa.parse(text, { header:true, skipEmptyLines:true,
-      complete: (res)=>resolve(res.data), error: reject
-    });
+    Papa.parse(text, { header:true, skipEmptyLines:true, complete: res => resolve(res.data), error: reject });
   });
 }
 
-/* Build graph ONLY from CSV rows (no auto ACTIVE_IN). Also de-dup edges. */
+/* Build graph ONLY from CSV rows (no auto ACTIVE_IN). De-dup edges. */
 function buildFromGraphExport(rows){
   const N = new Map();
   const E = [];
-  const seenEdge = new Set(); // de-dup key: from->to:type
-
-  const addNode = (id, label, title) => { if (!N.has(id)) N.set(id, {id, label, title: String(title||id)}); };
-  const addEdge = (a,b,t) => {
-    const key = `${a}->${b}:${t||"RELATED"}`;
-    if (seenEdge.has(key)) return;
-    seenEdge.add(key);
-    E.push({from:a,to:b,type:String(t||"RELATED")});
-  };
+  const seenEdge = new Set(); // from->to:type
+  const addNode = (id,label,title) => { if(!N.has(id)) N.set(id,{id,label,title:String(title||id)}); };
+  const addEdge = (a,b,t="RELATED") => { const key=`${a}->${b}:${t}`; if(seenEdge.has(key))return; seenEdge.add(key); E.push({from:a,to:b,type:t}); };
 
   for (const row of rows){
-    const aTitle = row["~start_node_property_name"];
-    const aLabelRaw = row["~start_node_labels"];
-    const bTitle = row["~end_node_property_name"];
-    const bLabelRaw = row["~end_node_labels"];
-    const relType = row["~relationship_type"];
-    if (!aTitle || !bTitle) continue;
-
+    const aTitle=row["~start_node_property_name"], aLabelRaw=row["~start_node_labels"];
+    const bTitle=row["~end_node_property_name"],   bLabelRaw=row["~end_node_labels"];
+    const relType=row["~relationship_type"];
+    if(!aTitle || !bTitle) continue;
     const aLabel = LABEL_MAP[aLabelRaw] || aLabelRaw || "Node";
     const bLabel = LABEL_MAP[bLabelRaw] || bLabelRaw || "Node";
-
-    const aId = (aLabel === "ThreatActor")
-      ? `actor_${normId(aTitle)}`
-      : `${normId(aLabel)}_${normId(aTitle)}`;
+    const aId = (aLabel==="ThreatActor")? `actor_${normId(aTitle)}` : `${normId(aLabel)}_${normId(aTitle)}`;
     const bId = `${normId(bLabel)}_${normId(bTitle)}`;
-
-    addNode(aId, aLabel, aTitle);
-    addNode(bId, bLabel, bTitle);
-    addEdge(aId, bId, relType);
+    addNode(aId,aLabel,aTitle); addNode(bId,bLabel,bTitle); addEdge(aId,bId,String(relType||"RELATED"));
     labelSet.add(aLabel); labelSet.add(bLabel);
   }
-
   return {nodes:N, edges:E};
 }
 
@@ -143,33 +117,31 @@ const edgesDS = new vis.DataSet([]);
 const network = new vis.Network(
   S("graph"),
   { nodes:nodesDS, edges:edgesDS },
-  { physics:{solver:"forceAtlas2Based", stabilization:{iterations:200}},
-    interaction:{hover:true, tooltipDelay:120} }
+  { physics:{solver:"forceAtlas2Based", stabilization:{iterations:250}},
+    interaction:{hover:true, tooltipDelay:120, multiselect:true} }
 );
+
+// Center helper
+function centerGraph(animated=true){
+  try { network.fit({ animation:animated }); network.stabilize(50); } catch {}
+}
 
 function populateFilters(){
   // Countries
   const cs = S("country"); cs.innerHTML = "";
-  [...new Set([...masterNodes.values()]
-    .filter(n=>n.label==="Country").map(n=>n.title))].sort()
+  [...new Set([...masterNodes.values()].filter(n=>n.label==="Country").map(n=>n.title))].sort()
     .forEach(c => { const o=document.createElement("option"); o.value=o.textContent=c; cs.appendChild(o); });
-
   // Relationship types
   const rs = S("reltype"); rs.innerHTML = "";
   [...new Set(masterEdges.map(e=>e.type))].sort()
     .forEach(t => { const o=document.createElement("option"); o.value=o.textContent=t; rs.appendChild(o); });
-
-  // Node types
-  const box = S("nodeTypesBox");
-  box.querySelectorAll("span,input").forEach(el=>el.remove());
-  [...labelSet].sort().forEach(L=>{
-    const span=document.createElement("span");
-    span.innerHTML=`<input type="checkbox" class="nodetype" value="${L}" checked> ${L}`;
-    box.appendChild(span);
-  });
+  // Node type toggles
+  const box = S("nodeTypesBox"); box.querySelectorAll("span,input").forEach(el=>el.remove());
+  [...labelSet].sort().forEach(L => { const span=document.createElement("span"); span.innerHTML=`<input type="checkbox" class="nodetype" value="${L}" checked> ${L}`; box.appendChild(span); });
 }
 
-function applyFilters({focusTerm=null} = {}) {
+// SEARCH‑FIRST + fallback to full graph
+function applyFilters({focusTerm=null} = {}){
   const allowedNodeTypes = new Set(Array.from(document.querySelectorAll(".nodetype:checked")).map(i=>i.value));
   const selectedCountries = new Set(Array.from(S("country").selectedOptions).map(o=>o.value));
   const selectedRelTypes  = new Set(Array.from(S("reltype").selectedOptions).map(o=>o.value));
@@ -178,66 +150,47 @@ function applyFilters({focusTerm=null} = {}) {
   let nodeIds = new Set(masterNodes.keys());
   let edges   = masterEdges.slice();
 
-  // --- SEARCH FIRST (always include the hit)
-  if (focusTerm && focusTerm.trim()) {
+  // 1) search first (always include the hit)
+  if (focusTerm && focusTerm.trim()){
     const term = focusTerm.toLowerCase();
     const hits = new Set(
-      [...masterNodes.values()]
-        .filter(n => (n.title||"").toLowerCase().includes(term) || (n.id||"").toLowerCase().includes(term))
-        .map(n => n.id)
+      [...masterNodes.values()].filter(n => (n.title||"").toLowerCase().includes(term) || (n.id||"").toLowerCase().includes(term)).map(n=>n.id)
     );
-    if (neighbors) {
-      edges = edges.filter(e => hits.has(e.from) || hits.has(e.to));
-      nodeIds = new Set([...edges.flatMap(e => [e.from, e.to]), ...hits]);
-    } else {
-      nodeIds = hits;
-      edges = edges.filter(e => hits.has(e.from) && hits.has(e.to));
-    }
+    if (neighbors){ edges = edges.filter(e => hits.has(e.from) || hits.has(e.to)); nodeIds = new Set([...edges.flatMap(e=>[e.from,e.to]), ...hits]); }
+    else { nodeIds = hits; edges = edges.filter(e => hits.has(e.from) && hits.has(e.to)); }
   }
 
-  // --- Relationship filter (refines, doesn't erase the search hit)
-  if (selectedRelTypes.size) {
-    edges = edges.filter(e => selectedRelTypes.has(e.type));
-  }
+  // 2) relationship refine
+  if (selectedRelTypes.size) edges = edges.filter(e => selectedRelTypes.has(e.type));
 
-  // --- Country filter (keep edges touching chosen countries or already-kept nodes)
-  if (selectedCountries.size) {
-    const cIds = new Set(
-      [...masterNodes.values()]
-        .filter(n => n.label === "Country" && selectedCountries.has(n.title))
-        .map(n => n.id)
-    );
+  // 3) country refine (keep edges touching chosen countries OR already kept nodes)
+  if (selectedCountries.size){
+    const cIds = new Set([...masterNodes.values()].filter(n=>n.label==="Country" && selectedCountries.has(n.title)).map(n=>n.id));
     edges = edges.filter(e => cIds.has(e.from) || cIds.has(e.to) || nodeIds.has(e.from) || nodeIds.has(e.to));
-    nodeIds = new Set([...nodeIds, ...edges.flatMap(e => [e.from, e.to]), ...cIds]);
+    nodeIds = new Set([...nodeIds, ...edges.flatMap(e=>[e.from,e.to]), ...cIds]);
   }
 
-  // --- Node-type filter last
+  // 4) node-type refine
   nodeIds = new Set([...nodeIds].filter(id => allowedNodeTypes.has(masterNodes.get(id).label)));
 
-  // --- Build vis nodes/edges
+  // Build render sets
   const visNodes = [...nodeIds].map(id => {
     const n = masterNodes.get(id);
-    return {
-      id:n.id, label:n.title, group:n.label, shape:"dot", size:12,
-      color:{background:colorBy[n.label]||"#d1d5db"}, title:`<b>${n.title}</b><br/>${n.label}`
-    };
+    return { id:n.id, label:n.title, group:n.label, shape:"dot", size:12,
+             color:{background:colorBy[n.label]||"#d1d5db"}, title:`<b>${n.title}</b><br/>${n.label}` };
   });
 
-  // de-dup edges at render time
+  // De‑dup edges
   const allowed = new Set(visNodes.map(n=>n.id));
-  const seen = new Set();
-  const visEdges = [];
-  for (const e of edges) {
+  const seen = new Set(); const visEdges = [];
+  for (const e of edges){
     if (!allowed.has(e.from) || !allowed.has(e.to)) continue;
-    const key = `${e.from}->${e.to}:${e.type}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    visEdges.push({ id:key, from:e.from, to:e.to, label:e.type, arrows:"to",
-                    font:{align:"top", size:10}, smooth:true });
+    const key = `${e.from}->${e.to}:${e.type}`; if (seen.has(key)) continue; seen.add(key);
+    visEdges.push({ id:key, from:e.from, to:e.to, label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true });
   }
 
-  // --- Fallback: if nothing matches, show full graph
-  if (visNodes.length === 0) {
+  // Fallback to full graph
+  if (visNodes.length === 0){
     const allNodes = [...masterNodes.values()].map(n => ({
       id:n.id, label:n.title, group:n.label, shape:"dot", size:12,
       color:{background:colorBy[n.label]||"#d1d5db"}, title:`<b>${n.title}</b><br/>${n.label}`
@@ -247,21 +200,23 @@ function applyFilters({focusTerm=null} = {}) {
       label:e.type, arrows:"to", font:{align:"top", size:10}, smooth:true
     }));
     nodesDS.clear(); edgesDS.clear(); nodesDS.add(allNodes); edgesDS.add(allEdges);
-    network.fit({animation:true});
-    setStatus(`No results with current filters — showing FULL graph (${allNodes.length} nodes, ${allEdges.length} edges).`);
+    centerGraph(false);
+    setStatus(`No results with filters — showing FULL graph (${allNodes.length} nodes, ${allEdges.length} edges).`);
     return;
   }
 
   nodesDS.clear(); edgesDS.clear();
   nodesDS.add(visNodes); edgesDS.add(visEdges);
-  network.fit({animation:true});
+
+  // Force fit + small stabilize to ensure visibility on all layouts
+  centerGraph(true);
   setStatus(`Filtered: ${visNodes.length} nodes, ${visEdges.length} edges`);
 }
 
 function wireFilters(){
   document.addEventListener("change", (e) => {
     if (e.target.classList.contains("nodetype") || e.target.id==="country" || e.target.id==="reltype"){
-      applyFilters();
+      applyFilters({ focusTerm:S("search").value });
     }
   });
   S("resetBtn").addEventListener("click", () => {
@@ -272,27 +227,26 @@ function wireFilters(){
     applyFilters();
   });
   S("focusBtn").addEventListener("click", () => applyFilters({ focusTerm:S("search").value }));
+  S("centerBtn").addEventListener("click", () => centerGraph(true));
   S("search").addEventListener("keydown", (e)=>{ if(e.key==="Enter") S("focusBtn").click(); });
 }
 
-/* ---------- load & build ---------- */
+/* ---------- load ---------- */
 async function loadRepoCSVs(){
   try{
     setStatus("Loading CSV…");
     const graphRows = await parseCSV("./graph-export.csv");
     const built = buildFromGraphExport(graphRows);
-    masterNodes = built.nodes;
-    masterEdges = built.edges;
+    masterNodes = built.nodes; masterEdges = built.edges;
     populateFilters(); wireFilters(); applyFilters();
     setStatus(`Loaded: ${masterNodes.size} nodes, ${masterEdges.length} edges`);
-  }catch(e){
-    console.error(e);
-    setStatus("Load failed: " + (e.message || e));
-  }
+    // Ensure first paint is centered (some browsers need a tick)
+    requestAnimationFrame(() => centerGraph(false));
+  }catch(e){ console.error(e); setStatus("Load failed: " + (e.message || e)); }
 }
 
 window.addEventListener("load", loadRepoCSVs);
-window.addEventListener("resize", () => network.fit({ animation:false }));
+window.addEventListener("resize", () => centerGraph(false));
 </script>
 </body>
 </html>
