@@ -56,3 +56,17 @@
 "5:f75dc485-148f-4285-919b-c89869e3b900:1152934698746380393","4:f75dc485-148f-4285-919b-c89869e3b900:105","4:f75dc485-148f-4285-919b-c89869e3b900:102","USES_INFRA"
 "5:f75dc485-148f-4285-919b-c89869e3b900:1155186498560065641","4:f75dc485-148f-4285-919b-c89869e3b900:105","4:f75dc485-148f-4285-919b-c89869e3b900:103","USES_INFRA"
 "5:f75dc485-148f-4285-919b-c89869e3b900:1157438298373750889","4:f75dc485-148f-4285-919b-c89869e3b900:105","4:f75dc485-148f-4285-919b-c89869e3b900:104","USES_INFRA"
+"rel-101","pv-actor","ddos-technique","USES"
+"rel-102","pv-actor","cpp-website","TARGETS"
+
+"rel-103","ol-actor","ol-malware","USES"
+"rel-104","ol-actor","Vietnam","ACTIVE_IN"
+
+"rel-105","mp-actor","PlugX","USES"
+"rel-106","mp-actor","cobalt-strike","USES"
+"rel-107","mp-actor","Southeast Asia","ACTIVE_IN"
+
+"rel-108","naikon-actor","aria-body","USES"
+"rel-109","naikon-actor","asean-governments","TARGETS"
+"rel-110","naikon-actor","China","ACTIVE_IN"
+
