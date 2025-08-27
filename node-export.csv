@@ -56,6 +56,18 @@
 "4:f75dc485-148f-4285-919b-c89869e3b900:131","Campaign",,"Bitter Pakistan Ops 2016",,,,,,,,,,,"2016","Gov/Defense PK"
 "4:f75dc485-148f-4285-919b-c89869e3b900:132","Campaign",,"Bitter CHM China 2023",,,,,,,,,,,"2023","Gov CN spearphish (CHM)"
 "4:f75dc485-148f-4285-919b-c89869e3b900:133","Campaign",,"Bitter China Gov 2024",,,,,,,,,,,"Feb 2024","Gov CN spearphish → Havoc"
+"ddos-technique","Technique","","Network/Service DDoS","General DDoS activity observed in hacktivist ops; maps to MITRE ATT&CK Network DoS.","","","Technique","T1498","","","","","","",""
+
+"cpp-website","Infrastructure","Philippines","Communist Party of the Philippines (CPP) website","Historic DDoS target claimed by Pinoy Vendetta (mid-2021).","","","domain","","","domain","cpp.ph","","","",""
+
+"ol-malware","MalwareFamily","Vietnam","KerrDown (OceanLotus downloader)","Downloader associated with OceanLotus/APT32 intrusion chains.","Espionage","Vietnam","MalwareFamily","","2014","","","","","",""
+
+"aria-body","MalwareFamily","China","Aria-Body","Custom backdoor linked to Naikon espionage campaigns.","Espionage","China","MalwareFamily","","2015","","","","","",""
+
+"cobalt-strike","Tool","","Cobalt Strike","Commercial post-exploitation/C2 framework frequently seen with Mustang Panda.","Espionage","","Tool","","","","","","","",""
+
+"asean-governments","Target","Southeast Asia","ASEAN Government Entities","Grouping for ministries/agencies across ASEAN targeted in espionage ops.","Espionage","Southeast Asia","Sector","","","","","","","",""
 
 "4:f75dc485-148f-4285-919b-c89869e3b900:134","Campaign",,"Bitter Turkey 2024",,,,,,,,,,,"Dec 2024","Gov/TR → WmRAT/MiyaRAT"
+
 
