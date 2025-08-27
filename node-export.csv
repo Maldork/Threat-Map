@@ -60,7 +60,7 @@
 
 "cpp-website","Infrastructure","Philippines","Communist Party of the Philippines (CPP) website","Historic DDoS target claimed by Pinoy Vendetta (mid-2021).","","","domain","","","domain","cpp.ph","","","",""
 
-"ol-malware","MalwareFamily","Vietnam","KerrDown (OceanLotus downloader)","Downloader associated with OceanLotus/APT32 intrusion chains.","Espionage","Vietnam","MalwareFamily","","2014","","","","","",""
+"rel-104","4:user-ol-actor","4:f75dc485-148f-4285-919b-c89869e3b900:79","ACTIVE_IN"
 
 "aria-body","MalwareFamily","China","Aria-Body","Custom backdoor linked to Naikon espionage campaigns.","Espionage","China","MalwareFamily","","2015","","","","","",""
 
@@ -69,6 +69,7 @@
 "asean-governments","Target","Southeast Asia","ASEAN Government Entities","Grouping for ministries/agencies across ASEAN targeted in espionage ops.","Espionage","Southeast Asia","Sector","","","","","","","",""
 
 "4:f75dc485-148f-4285-919b-c89869e3b900:134","Campaign",,"Bitter Turkey 2024",,,,,,,,,,,"Dec 2024","Gov/TR → WmRAT/MiyaRAT"
+
 
 
 
