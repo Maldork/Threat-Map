@@ -28,7 +28,9 @@
 "4:f75dc485-148f-4285-919b-c89869e3b900:107","Infrastructure",,,,,,,,,"domain","dtzappaccount.com","unknown",,,
 "4:f75dc485-148f-4285-919b-c89869e3b900:108","Infrastructure",,,,,,,,,"domain","bluelotus.mail-gdrive.com","unknown",,,
 "pv-actor","Actor","Philippines","Pinoy Vendetta","Self-styled Filipino hacktivist collective. Emerged mid-2021; known for DDoS attacks against CPP, media, and opposition groups.","Hacktivism","Philippines","Collective","","2021-06","","","","","",""
-
+"ol-actor","Actor","Vietnam","OceanLotus","Also known as APT32. Espionage-focused group; targets SEA governments, NGOs, media, and corporations. Uses watering hole attacks and custom backdoors.","Espionage","Vietnam","APT","APT32","2014","","","","","",""
+"mp-actor","Actor","China","Mustang Panda","China-linked espionage actor. Known for PlugX, Korplug, and Cobalt Strike. Campaigns against NGOs, governments, and think tanks in Southeast Asia.","Espionage","China","APT","","2017","","","","","",""
+"naikon-actor","Actor","China","Naikon","PLA-linked espionage group with decade-long activity. Targeted ASEAN governments with Aria-body backdoor and long-term campaigns.","Espionage","China","APT","","2010","","","","","",""
 "4:f75dc485-148f-4285-919b-c89869e3b900:109","Infrastructure",,,,,,,,,"domain","msdata.ddns.net","unknown",,,
 "4:f75dc485-148f-4285-919b-c89869e3b900:110","Region",,"South Asia",,,,,,,,,,,,
 "4:f75dc485-148f-4285-919b-c89869e3b900:111","Region",,"Myanmar",,,,,,,,,,,,
@@ -56,3 +58,4 @@
 "4:f75dc485-148f-4285-919b-c89869e3b900:133","Campaign",,"Bitter China Gov 2024",,,,,,,,,,,"Feb 2024","Gov CN spearphish → Havoc"
 
 "4:f75dc485-148f-4285-919b-c89869e3b900:134","Campaign",,"Bitter Turkey 2024",,,,,,,,,,,"Dec 2024","Gov/TR → WmRAT/MiyaRAT"
+
